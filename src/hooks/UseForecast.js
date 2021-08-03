@@ -1,25 +1,142 @@
-/* este archivo va a ser un hook y se va a encargar de renderizar, cuando sea necesario, los componentes Error, Loader y Forecast. Es decir, va a alterar los estados para que esos componentes se muestren cuando sea necesario*/
+// /* este archivo va a ser un hook y se va a encargar de renderizar, cuando sea necesario, los componentes Error, Loader y Forecast. Es decir, va a alterar los estados para que esos componentes se muestren cuando sea necesario*/
 
-import axios from 'axios';
+// import axios from 'axios';
+// import { useState } from 'react';
+
+// import getCurrentDayForecast from '../helpers/getCurrentDayForecast'
+// import getCurrentDayDetailedForecast from '../helpers/getCurrentDayDetailedForecast'
+// import getUpcomingDaysForecast from '../helpers/getUpcomingDaysForecast'
+
+// const BASE_URL = 'https://www.metaweather.com/api/location';
+// /* Necesita tener el dominio que vamos a usar que el navegador no bloquee los request debido a que estamos desarrollando en localhost */
+// const CROSS_DOMAIN = 'https://the-ultimate-api-challenge.herokuapp.com';
+// const REQUEST_URL = `${CROSS_DOMAIN}/${BASE_URL}`;
+
+// const UseForecast = () => {
+//     const [isLoading, setIsLoading] = useState(false);
+//     const [isError, setIsError] = useState(false);
+//     /* el estado inicial de forecast es null porque no se eligio aun ningun pronostico */
+//     const [forecast, setForecast] = useState(null);
+
+//     const getWoeid = async location => {
+//         /* get woeid (woeid significa where on earth id) */
+//         /* axios puede recibir params */
+//         const { data } = await axios(`${REQUEST_URL}/search`, { params: { query: location } });
+
+//         /* Si no se encuentra la data con el nombre de la ciudad que dio el usario, se tira un error */
+//         if (!data || data.length === 0) {
+//             setIsError(`No se encontro ninguna localizacion con ese nombre. Pruebe con otro nombre.`);
+//             setIsLoading(false);
+//             return;
+//         }
+//         return data[0];
+//     };
+    
+//     const getForecastData = async woeid => {
+//         const { data } = await axios(`${REQUEST_URL}/${woeid}`);
+
+//         if (!data || data.length === 0) {
+//             setIsError(`Ha ocurrido un error`);
+//             setIsLoading(false);
+//             return;
+//         }
+        
+//         return data;
+//     };
+
+//     const gatheForcastData = (data) => {
+//         const currentDay = getCurrentDayForecast(data.consolidated_weather[0], data.title);
+//         const currentDayDetail = getCurrentDayDetailedForecast(data.consolidated_weather[0]);
+//         const upcomingDays = getUpcomingDaysForecast(data.consolidated_weather);
+        
+//         setForecast({ currentDay, currentDayDetail, upcomingDays });
+//         setIsLoading(false);
+//     }
+
+//     /* con esta funcion enviamos el request */
+//     const submitRequest = async location => {
+//         setIsLoading(true);
+//         setIsError(false);
+
+//         const response = await getWoeid(location);
+//         /* si hay un response pero no hay un woeid (where on earth id) entonces retornamos*/
+//         if(!response?.woeid) return;
+//         const data = await getForecastData(response.woeid);
+//         if (!data) return;
+
+//         gatheForcastData(data);
+//     };
+
+//     return {
+//         isError,
+//         isLoading,
+//         forecast,
+//         submitRequest,
+//     };
+// };
+
+// export default UseForecast;
+
 import { useState } from 'react';
+import axios from 'axios';
+
+import getCurrentDayForecast from '../helpers/getCurrentDayForecast';
+import getCurrentDayDetailedForecast from '../helpers/getCurrentDayDetailedForecast';
+import getUpcomingDaysForecast from '../helpers/getUpcomingDaysForecast';
 
 const BASE_URL = 'https://www.metaweather.com/api/location';
-const CROSS_DOMAIN = 'https://localhost:3000.herokuapp.com';
+const CROSS_DOMAIN = 'https://the-ultimate-api-challenge.herokuapp.com';
 const REQUEST_URL = `${CROSS_DOMAIN}/${BASE_URL}`;
 
-const UseForecast = () => {
-    const [isLoading, setIsLoading] = useState(false);
-    const [isError, setIsError] = useState(false);
-    /* el estado inicial de forecast es null porque no se eligio aun ningun pronostico */
+const useForecast = () => {
+    const [isError, setError] = useState(false);
+    const [isLoading, setLoading] = useState(false);
     const [forecast, setForecast] = useState(null);
 
-    /* con esta funcion enviamos el request */
+    const getWoeid = async location => {
+        const { data } = await axios(`${REQUEST_URL}/search`, { params: { query: location } });
+
+        if (!data || data.length === 0) {
+            setError('There is no such location');
+            setLoading(false);
+            return;
+        }
+
+        return data[0];
+    };
+
+    const getForecastData = async woeid => {
+        const { data } = await axios(`${REQUEST_URL}/${woeid}`);
+
+        if (!data || data.length === 0) {
+            setError('Something went wrong');
+            setLoading(false);
+            return;
+        }
+
+        return data;
+    };
+
+    const gatherForecastData = data => {
+        const currentDay = getCurrentDayForecast(data.consolidated_weather[0], data.title);
+        const currentDayDetails = getCurrentDayDetailedForecast(data.consolidated_weather[0]);
+        const upcomingDays = getUpcomingDaysForecast(data.consolidated_weather);
+
+        setForecast({ currentDay, currentDayDetails, upcomingDays });
+        setLoading(false);
+    };
+
     const submitRequest = async location => {
-        /* get woeid */
-        /* axios puede recibir params */
-        const response = await axios(`${REQUEST_URL}/search`, { params: { query: location } });
-        /* get weather */
-        console.log({ response });
+        setLoading(true);
+        setError(false);
+
+        const response = await getWoeid(location);
+        if (!response?.woeid) return;
+
+        const data = await getForecastData(response.woeid);
+        if (!data) return;
+
+        gatherForecastData(data);
     };
 
     return {
@@ -30,4 +147,4 @@ const UseForecast = () => {
     };
 };
 
-export default UseForecast;
+export default useForecast;
